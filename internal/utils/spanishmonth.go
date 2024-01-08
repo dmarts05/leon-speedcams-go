@@ -1,4 +1,4 @@
-package main
+package utils
 
 import "time"
 
@@ -18,6 +18,6 @@ var spanishMonths = [...]string{
 }
 
 func GetThisSpanishMonth() string {
-	monthNum := int(time.Now().Month())
+	monthNum := int(time.Now().Month()) - 1
 	return spanishMonths[monthNum]
 }

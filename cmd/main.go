@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dmarts05/leon-speedcams-go/internal/httpclient"
+	"github.com/dmarts05/leon-speedcams-go/internal/speedcams"
+	"github.com/dmarts05/leon-speedcams-go/internal/utils"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,7 +17,7 @@ func initLogger() {
 	log.SetReportCaller(true)
 
 	// Configure log rotation for file logging
-	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		// Use lfshook to write logs to file with rotation
 		log.AddHook(lfshook.NewHook(
@@ -59,4 +62,11 @@ func main() {
 	// TODO: Read .toml config file
 
 	log.Info("Extracting today's speedcams data...")
+	client := httpclient.NewHTTPClient(utils.RequestTimeout)
+	defer client.CloseIdleConnections()
+	speedcamsData, err := speedcams.GetTodaysSpeedcamsData(client, utils.BaseRequestURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Debug("Today's speedcams data: ", speedcamsData)
 }
