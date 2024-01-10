@@ -17,7 +17,8 @@ var spanishMonths = [...]string{
 	"diciembre",
 }
 
-func GetThisSpanishMonth() string {
+// Returns the name of the current month in Spanish
+func GetCurrentSpanishMonth() string {
 	monthNum := int(time.Now().Month()) - 1
 	return spanishMonths[monthNum]
 }

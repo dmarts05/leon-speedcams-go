@@ -5,12 +5,21 @@ import (
 	"os"
 
 	"github.com/dmarts05/leon-speedcams-go/internal/httpclient"
-	"github.com/dmarts05/leon-speedcams-go/internal/speedcams"
-	"github.com/dmarts05/leon-speedcams-go/internal/utils"
+	speedcamsScraper "github.com/dmarts05/leon-speedcams-go/internal/speedcams_scraper"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	requestTimeout = 30
+	baseRequestURL = "https://www.ahoraleon.com"
+)
+
+// Initialize the logger with the following configuration:
+// - Log level: debug
+// - Report caller: true
+// - Log file: logs/app.log
+// - Log rotation: true
 func initLogger() {
 	// TODO: add option in config file to set log level
 	log.SetLevel(log.DebugLevel)
@@ -36,6 +45,7 @@ func initLogger() {
 	}
 }
 
+// Show a welcome message with the app name
 func showWelcomeMessage() {
 	fmt.Println(`
 ██╗     ███████╗ ██████╗ ███╗   ██╗                                        
@@ -62,11 +72,14 @@ func main() {
 	// TODO: Read .toml config file
 
 	log.Info("Extracting today's speedcams data...")
-	client := httpclient.NewHTTPClient(utils.RequestTimeout)
+	client := httpclient.NewHTTPClient(requestTimeout)
 	defer client.CloseIdleConnections()
-	speedcamsData, err := speedcams.GetTodaysSpeedcamsData(client, utils.BaseRequestURL)
+	speedcamsData, err := speedcamsScraper.GetTodaysSpeedcamsData(client, baseRequestURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Debug("Today's speedcams data: ", speedcamsData)
+
+	fmt.Print(speedcamsData.String())
+
+	log.Info("Sending today's speedcams data to Telegram...")
 }
