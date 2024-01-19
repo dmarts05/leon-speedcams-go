@@ -1,4 +1,5 @@
-package utils
+// Includes utility functions for working with dates
+package date
 
 import "time"
 

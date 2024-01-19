@@ -1,4 +1,4 @@
-package utils
+package speedcamsscraper
 
 import (
 	"fmt"
@@ -42,25 +42,27 @@ type SpeedcamsDayData struct {
 
 // Returns a string with all the speedcams data for a specific day
 func (scdd *SpeedcamsDayData) String() string {
-	sb := strings.Builder{}
+	dataBuilder := strings.Builder{}
 
+	asterisks := strings.Repeat("*", 31)
 	year, month, day := scdd.Date.Date()
 
-	sb.WriteString("*******************************\n")
-	sb.WriteString(fmt.Sprintf("* LEÓN SPEEDCAMS (%02d/%02d/%d) *\n", day, month, year))
-	sb.WriteString("*******************************\n\n")
+	// Using strings.Repeat for repeated characters
+	dataBuilder.WriteString(asterisks + "\n")
+	dataBuilder.WriteString(fmt.Sprintf("* LEÓN SPEEDCAMS (%02d/%02d/%d) *\n", day, month, year))
+	dataBuilder.WriteString(asterisks + "\n\n")
 
-	sb.WriteString("Morning:\n")
+	dataBuilder.WriteString("Morning:\n")
 	for _, speedcam := range scdd.Morning {
-		sb.WriteString(fmt.Sprintf("\t- %s\n", speedcam.String()))
+		dataBuilder.WriteString(fmt.Sprintf("\t- %s\n", speedcam.String()))
 	}
 
-	sb.WriteString("\n")
+	dataBuilder.WriteString("\n")
 
-	sb.WriteString("Afternoon:\n")
+	dataBuilder.WriteString("Afternoon:\n")
 	for _, speedcam := range scdd.Afternoon {
-		sb.WriteString(fmt.Sprintf("\t- %s\n", speedcam.String()))
+		dataBuilder.WriteString(fmt.Sprintf("\t- %s\n", speedcam.String()))
 	}
 
-	return sb.String()
+	return dataBuilder.String()
 }

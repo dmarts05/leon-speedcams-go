@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dmarts05/leon-speedcams-go/internal/httpclient"
-	speedcamsScraper "github.com/dmarts05/leon-speedcams-go/internal/speedcams_scraper"
+	"github.com/dmarts05/leon-speedcams-go/internal/speedcamsscraper"
+	"github.com/dmarts05/leon-speedcams-go/internal/timeoutclient"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
 )
@@ -68,18 +68,23 @@ func main() {
 
 	showWelcomeMessage()
 
-	log.Info("Reading config file...")
+	// log.Info("Reading config file...")
 	// TODO: Read .toml config file
 
 	log.Info("Extracting today's speedcams data...")
-	client := httpclient.NewHTTPClient(requestTimeout)
+	client := timeoutclient.NewTimeoutClient(requestTimeout)
 	defer client.CloseIdleConnections()
-	speedcamsData, err := speedcamsScraper.GetTodaysSpeedcamsData(client, baseRequestURL)
+
+	scraper, err := speedcamsscraper.NewSpeedcamsScraper(client, baseRequestURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	data, err := scraper.GetTodaysSpeedcamsData()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Print(speedcamsData.String())
+	fmt.Print(data.String())
 
-	log.Info("Sending today's speedcams data to Telegram...")
+	// log.Info("Sending today's speedcams data to Telegram...")
 }

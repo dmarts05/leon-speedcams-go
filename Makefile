@@ -13,26 +13,6 @@ help:
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 
 # ==================================================================================== #
-# QUALITY CONTROL
-# ==================================================================================== #
-
-## tidy: format code and tidy modfile
-.PHONY: tidy
-tidy:
-	go fmt ./...
-	go mod tidy -v
-
-## audit: run quality control checks
-.PHONY: audit
-audit:
-	go mod verify
-	go vet ./...
-	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-	go test -race -buildvcs -vet=off ./...
-
-
-# ==================================================================================== #
 # DEVELOPMENT
 # ==================================================================================== #
 
@@ -52,16 +32,15 @@ test/cover:
 build:
 	go build -o=/tmp/bin/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
+## build/prod: build the application for production in Linux, Windows and MacOS with stripped binaries
+.PHONY: build/prod
+build/prod:
+	GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o=./bin/${BINARY_NAME}-linux-amd64 ${MAIN_PACKAGE_PATH}
+	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o=./bin/${BINARY_NAME}-windows-amd64.exe ${MAIN_PACKAGE_PATH}
+	GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o=./bin/${BINARY_NAME}-darwin-amd64 ${MAIN_PACKAGE_PATH}
+
 ## run: run the  application
 .PHONY: run
 run: build
 	/tmp/bin/${BINARY_NAME}
 
-## run/live: run the application with reloading on file changes
-.PHONY: run/live
-run/live:
-	go run github.com/cosmtrek/air@latest \
-		--build.cmd "make build" --build.bin "/tmp/bin/${BINARY_NAME}" --build.delay "100" \
-		--build.exclude_dir "" \
-		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico" \
-		--misc.clean_on_exit "true"

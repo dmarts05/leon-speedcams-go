@@ -1,4 +1,5 @@
-package httpclient
+// Utility to create an HTTP client with a timeout
+package timeoutclient
 
 import (
 	"net/http"
@@ -6,7 +7,7 @@ import (
 )
 
 // Create an HTTP client with a timeout
-func NewHTTPClient(timeout int) *http.Client {
+func NewTimeoutClient(timeout int) *http.Client {
 	return &http.Client{
 		Timeout: time.Duration(timeout) * time.Second,
 	}
