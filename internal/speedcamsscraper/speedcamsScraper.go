@@ -24,19 +24,19 @@ type SpeedcamsScraper struct {
 
 // Creates a new SpeedcamsScraper
 // The base URL must be valid and reachable, otherwise an error will be returned
-func NewSpeedcamsScraper(client *http.Client, baseRequestURL string) (*SpeedcamsScraper, error) {
+func NewSpeedcamsScraper(client *http.Client, baseRequestURL string) (SpeedcamsScraper, error) {
 	// Ping the base request URL to check if it's reachable
 	_, err := client.Get(baseRequestURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create speedcams scraper: %w", err)
+		return SpeedcamsScraper{}, fmt.Errorf("failed to create speedcams scraper: %w", err)
 	}
 
-	return &SpeedcamsScraper{client: client, baseRequestURL: baseRequestURL}, nil
+	return SpeedcamsScraper{client: client, baseRequestURL: baseRequestURL}, nil
 }
 
 // Gets the latest speedcams data link from the website
 // Returns an error if the request fails or if the link is not found
-func (ss *SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
+func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 	monthName := date.GetCurrentSpanishMonth()
 	requestURL := fmt.Sprintf("%s/?s=radar+%s", ss.baseRequestURL, monthName)
 
@@ -65,7 +65,7 @@ func (ss *SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 
 // Gets the speedcams data rows from the given link
 // Returns an error if the request fails or if the rows are not found
-func (ss *SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow, error) {
+func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow, error) {
 	res, err := ss.client.Get(link)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get speedcams rows from link: %w", err)
@@ -126,7 +126,7 @@ func (ss *SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRo
 
 // Gets today's speedcams data from the website
 // Returns an error if the request fails or if the data is not found
-func (ss *SpeedcamsScraper) GetTodaysSpeedcamsData() (SpeedcamsDayData, error) {
+func (ss SpeedcamsScraper) GetTodaysSpeedcamsData() (SpeedcamsDayData, error) {
 	speedcamsDataLink, err := ss.getLatestSpeedcamsLink()
 	if err != nil {
 		return SpeedcamsDayData{}, fmt.Errorf("failed to get today's speedcams data: %w", err)

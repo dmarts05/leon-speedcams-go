@@ -4,15 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dmarts05/leon-speedcams-go/internal/config"
 	"github.com/dmarts05/leon-speedcams-go/internal/speedcamsscraper"
 	"github.com/dmarts05/leon-speedcams-go/internal/timeoutclient"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	requestTimeout = 30
-	baseRequestURL = "https://www.ahoraleon.com"
 )
 
 // Initialize the logger with the following configuration:
@@ -21,7 +17,6 @@ const (
 // - Log file: logs/app.log
 // - Log rotation: true
 func initLogger() {
-	// TODO: add option in config file to set log level
 	log.SetLevel(log.DebugLevel)
 	log.SetReportCaller(true)
 
@@ -68,14 +63,18 @@ func main() {
 
 	showWelcomeMessage()
 
-	// log.Info("Reading config file...")
-	// TODO: Read .toml config file
+	log.Info("Reading config file...")
+	conf, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Debug("Config: ", conf)
 
 	log.Info("Extracting today's speedcams data...")
-	client := timeoutclient.NewTimeoutClient(requestTimeout)
+	client := timeoutclient.NewTimeoutClient(conf.RequestTimeout)
 	defer client.CloseIdleConnections()
 
-	scraper, err := speedcamsscraper.NewSpeedcamsScraper(client, baseRequestURL)
+	scraper, err := speedcamsscraper.NewSpeedcamsScraper(client, conf.BaseRequestURL)
 	if err != nil {
 		log.Fatal(err)
 	}
