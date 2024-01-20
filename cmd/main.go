@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dmarts05/leon-speedcams-go/internal/config"
+	"github.com/dmarts05/leon-speedcams-go/internal/messagesender"
 	"github.com/dmarts05/leon-speedcams-go/internal/speedcamsscraper"
 	"github.com/dmarts05/leon-speedcams-go/internal/timeoutclient"
 	"github.com/rifflock/lfshook"
@@ -78,6 +79,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	data, err := scraper.GetTodaysSpeedcamsData()
 	if err != nil {
 		log.Fatal(err)
@@ -85,5 +87,12 @@ func main() {
 
 	fmt.Print(data.String())
 
-	// log.Info("Sending today's speedcams data to Telegram...")
+	log.Info("Sending today's speedcams data to Telegram...")
+	telegramSender := messagesender.TelegramBotMessageSender{Client: client, Token: conf.TelegramBotToken, ChatID: conf.TelegramChatID}
+	err = telegramSender.SendMessage(data.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Info("Done!")
 }

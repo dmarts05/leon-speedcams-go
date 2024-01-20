@@ -1,5 +1,5 @@
 // Includes utility functions for working with dates
-package date
+package spanishdate
 
 import "time"
 

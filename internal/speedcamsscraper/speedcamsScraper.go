@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/dmarts05/leon-speedcams-go/internal/date"
+	"github.com/dmarts05/leon-speedcams-go/internal/spanishdate"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -37,7 +37,7 @@ func NewSpeedcamsScraper(client *http.Client, baseRequestURL string) (SpeedcamsS
 // Gets the latest speedcams data link from the website
 // Returns an error if the request fails or if the link is not found
 func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
-	monthName := date.GetCurrentSpanishMonth()
+	monthName := spanishdate.GetCurrentSpanishMonth()
 	requestURL := fmt.Sprintf("%s/?s=radar+%s", ss.baseRequestURL, monthName)
 
 	res, err := ss.client.Get(requestURL)
