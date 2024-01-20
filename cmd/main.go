@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/dmarts05/leon-speedcams-go/internal/config"
-	"github.com/dmarts05/leon-speedcams-go/internal/messagesender"
+	"github.com/dmarts05/leon-speedcams-go/internal/message"
 	"github.com/dmarts05/leon-speedcams-go/internal/speedcamsscraper"
 	"github.com/dmarts05/leon-speedcams-go/internal/timeoutclient"
 	"github.com/rifflock/lfshook"
@@ -85,11 +85,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Print(data.String())
+	msg := message.BuildSpeedcamsDayDataMessage(data, conf.MonitoredStreets)
+	fmt.Print(msg)
 
 	log.Info("Sending today's speedcams data to Telegram...")
-	telegramSender := messagesender.TelegramBotMessageSender{Client: client, Token: conf.TelegramBotToken, ChatID: conf.TelegramChatID}
-	err = telegramSender.SendMessage(data.String())
+	telegramSender := message.TelegramBotMessageSender{Client: client, Token: conf.TelegramBotToken, ChatID: conf.TelegramChatID}
+	err = telegramSender.SendMessage(msg)
 	if err != nil {
 		log.Fatal(err)
 	}

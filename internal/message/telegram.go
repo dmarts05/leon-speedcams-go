@@ -1,4 +1,4 @@
-package messagesender
+package message
 
 import (
 	"fmt"

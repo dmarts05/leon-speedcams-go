@@ -34,6 +34,55 @@ func NewSpeedcamsScraper(client *http.Client, baseRequestURL string) (SpeedcamsS
 	return SpeedcamsScraper{client: client, baseRequestURL: baseRequestURL}, nil
 }
 
+// Filters empty strings from the given string slice
+func filterEmptyStrings(strings []string) []string {
+	var filteredStrings []string
+
+	for _, str := range strings {
+		if str != "" {
+			filteredStrings = append(filteredStrings, str)
+		}
+	}
+
+	return filteredStrings
+}
+
+// Converts a string slice to an int slice
+// Returns an error if the conversion fails
+func stringSliceToIntSlice(stringSlice []string) ([]int, error) {
+	var intSlice []int
+
+	for _, str := range stringSlice {
+		num, err := strconv.Atoi(str)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert string slice to int slice: %w", err)
+		}
+
+		intSlice = append(intSlice, num)
+	}
+
+	return intSlice, nil
+}
+
+// Filters the given rows by the given day
+func filterRowsByDay(rows []SpeedcamsRow, day int) []SpeedcamsRow {
+	filteredRows := make([]SpeedcamsRow, 0, 2)
+	for _, row := range rows {
+		if row.Day == day {
+			filteredRows = append(filteredRows, row)
+		}
+	}
+	return filteredRows
+}
+
+// Appends the given streets and speed limits to the given speedcams slice
+func appendSpeedcams(existing []Speedcam, streets []string, limits []int) []Speedcam {
+	for i, street := range streets {
+		existing = append(existing, Speedcam{Street: street, SpeedLimit: limits[i]})
+	}
+	return existing
+}
+
 // Gets the latest speedcams data link from the website
 // Returns an error if the request fails or if the link is not found
 func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
