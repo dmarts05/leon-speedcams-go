@@ -4,6 +4,7 @@ package speedcamsscraper
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,25 +15,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
-
-// Contains the client and the base request URL required to scrape speedcams data
-// from the given website
-type SpeedcamsScraper struct {
-	client         *http.Client
-	baseRequestURL string
-}
-
-// Creates a new SpeedcamsScraper
-// The base URL must be valid and reachable, otherwise an error will be returned
-func NewSpeedcamsScraper(client *http.Client, baseRequestURL string) (SpeedcamsScraper, error) {
-	// Ping the base request URL to check if it's reachable
-	_, err := client.Get(baseRequestURL)
-	if err != nil {
-		return SpeedcamsScraper{}, fmt.Errorf("failed to create speedcams scraper: %w", err)
-	}
-
-	return SpeedcamsScraper{client: client, baseRequestURL: baseRequestURL}, nil
-}
 
 // Filters empty strings from the given string slice
 func filterEmptyStrings(strings []string) []string {
@@ -83,13 +65,20 @@ func appendSpeedcams(existing []Speedcam, streets []string, limits []int) []Spee
 	return existing
 }
 
+// Contains the client and the base request URL required to scrape speedcams data
+// from the given website
+type SpeedcamsScraper struct {
+	Client         *http.Client
+	BaseRequestURL string
+}
+
 // Gets the latest speedcams data link from the website
 // Returns an error if the request fails or if the link is not found
 func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 	monthName := spanishdate.GetCurrentSpanishMonth()
-	requestURL := fmt.Sprintf("%s/?s=radar+%s", ss.baseRequestURL, monthName)
+	requestURL := fmt.Sprintf("%s/?s=radar+%s", ss.BaseRequestURL, monthName)
 
-	res, err := ss.client.Get(requestURL)
+	res, err := ss.Client.Get(requestURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to get latest speedcams link: %w", err)
 	}
@@ -112,22 +101,12 @@ func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 	return speedcamsDataLink, nil
 }
 
-// Gets the speedcams data rows from the given link
-// Returns an error if the request fails or if the rows are not found
-func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow, error) {
-	res, err := ss.client.Get(link)
+// Gets the speedcams data rows from the given body
+// Returns an error if the rows are not found
+func (ss SpeedcamsScraper) getSpeedcamsRowsFromBody(body io.ReadCloser) ([]SpeedcamsRow, error) {
+	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get speedcams rows from link: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get speedcams rows from link: request failed with status code: %d", res.StatusCode)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get speedcams rows from link: %w", err)
+		return nil, fmt.Errorf("failed to get speedcams rows from website body: %w", err)
 	}
 
 	// Get speedcams data table rows
@@ -169,6 +148,27 @@ func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow
 
 		rows = append(rows, row)
 	})
+
+	return rows, nil
+}
+
+// Gets the speedcams data rows from the given link
+// Returns an error if the request fails or if the rows are not found
+func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow, error) {
+	res, err := ss.Client.Get(link)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get speedcams rows from link: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get speedcams rows from link: request failed with status code: %d", res.StatusCode)
+	}
+
+	rows, err := ss.getSpeedcamsRowsFromBody(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get speedcams rows from link: %w", err)
+	}
 
 	return rows, nil
 }
