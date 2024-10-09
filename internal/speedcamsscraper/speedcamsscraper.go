@@ -93,7 +93,7 @@ func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 		return "", fmt.Errorf("failed to get latest speedcams link: %w", err)
 	}
 
-	speedcamsDataLink := doc.Find("a[rel='bookmark']").First().AttrOr("href", "")
+	speedcamsDataLink := doc.Find(".entry-title a").First().AttrOr("href", "")
 	if speedcamsDataLink == "" {
 		return "", errors.New("failed to get latest speedcams link: no speedcams data link found")
 	}
