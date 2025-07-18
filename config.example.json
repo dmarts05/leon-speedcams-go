@@ -1,8 +1,0 @@
-{
-  "request_timeout": 30,
-  "base_request_url": "https://www.ahoraleon.com",
-  "monitored_streets": ["Antibióticos", "Salamanca"],
-  "telegram_bot_token": "1234567890:ABHztzSYqu2IMZrDnpCBLptJPviwBOFM1bs",
-  "telegram_chat_id": "123456789"
-}
-

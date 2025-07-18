@@ -1,0 +1,17 @@
+# Ignore git
+.git
+.gitignore
+
+# Ignore build artifacts and binaries
+bin/
+tmp/
+*.exe
+*.out
+
+# Ignore config files not needed at build time
+.env
+.env.example
+
+# Ignore Makefile and docs
+Makefile
+README.md
