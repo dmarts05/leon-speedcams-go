@@ -8,6 +8,10 @@ import (
 )
 
 type Config struct {
+	// EnableCron indicates whether the cron job is enabled
+	EnableCron bool
+	// Cron is the cron expression for scheduling tasks
+	Cron string
 	// RequestTimeout is the timeout in seconds for HTTP requests
 	RequestTimeout int
 	// BaseRequestURL is the base URL for HTTP requests
@@ -22,6 +26,9 @@ type Config struct {
 
 // New returns a new Config instance by reading environment variables
 func New() (Config, error) {
+	enableCronStr := os.Getenv("ENABLE_CRON")
+	enableCron := enableCronStr == "1" || strings.ToLower(enableCronStr) == "true"
+
 	requestTimeoutStr := os.Getenv("REQUEST_TIMEOUT")
 	if requestTimeoutStr == "" {
 		return Config{}, fmt.Errorf("missing required environment variable: REQUEST_TIMEOUT")
@@ -34,6 +41,8 @@ func New() (Config, error) {
 	monitoredStreets := strings.Split(os.Getenv("MONITORED_STREETS"), ",")
 
 	config := Config{
+		EnableCron:       enableCron,
+		Cron:             os.Getenv("CRON"),
 		RequestTimeout:   requestTimeout,
 		BaseRequestURL:   os.Getenv("BASE_REQUEST_URL"),
 		MonitoredStreets: monitoredStreets,
@@ -43,6 +52,9 @@ func New() (Config, error) {
 
 	// Validate required fields
 	missing := []string{}
+	if config.EnableCron && config.Cron == "" {
+		missing = append(missing, "CRON")
+	}
 	if config.BaseRequestURL == "" {
 		missing = append(missing, "BASE_REQUEST_URL")
 	}
