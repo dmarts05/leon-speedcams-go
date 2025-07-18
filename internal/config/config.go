@@ -1,35 +1,62 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type Config struct {
 	// RequestTimeout is the timeout in seconds for HTTP requests
-	RequestTimeout int `json:"request_timeout"`
+	RequestTimeout int
 	// BaseRequestURL is the base URL for HTTP requests
-	BaseRequestURL string `json:"base_request_url"`
+	BaseRequestURL string
 	// MonitoredStreets is the list of streets to monitor
-	MonitoredStreets []string `json:"monitored_streets"`
+	MonitoredStreets []string
 	// TelegramBotToken is the token for the Telegram bot
-	TelegramBotToken string `json:"telegram_bot_token"`
+	TelegramBotToken string
 	// TelegramChatID is the chat ID for the Telegram bot
-	TelegramChatID string `json:"telegram_chat_id"`
+	TelegramChatID string
 }
 
-// NewConfig returns a new Config instance by reading the configuration file
-func NewConfig() (Config, error) {
-	file, err := os.Open("config.json")
-	if err != nil {
-		return Config{}, fmt.Errorf("failed to open config file: %w", err)
+// New returns a new Config instance by reading environment variables
+func New() (Config, error) {
+	requestTimeoutStr := os.Getenv("REQUEST_TIMEOUT")
+	if requestTimeoutStr == "" {
+		return Config{}, fmt.Errorf("missing required environment variable: REQUEST_TIMEOUT")
 	}
-	defer file.Close()
+	requestTimeout, err := strconv.Atoi(requestTimeoutStr)
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid REQUEST_TIMEOUT value: %w", err)
+	}
 
-	config := Config{}
-	if err := json.NewDecoder(file).Decode(&config); err != nil {
-		return Config{}, fmt.Errorf("failed to decode config file: %w", err)
+	monitoredStreets := strings.Split(os.Getenv("MONITORED_STREETS"), ",")
+
+	config := Config{
+		RequestTimeout:   requestTimeout,
+		BaseRequestURL:   os.Getenv("BASE_REQUEST_URL"),
+		MonitoredStreets: monitoredStreets,
+		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID:   os.Getenv("TELEGRAM_CHAT_ID"),
+	}
+
+	// Validate required fields
+	missing := []string{}
+	if config.BaseRequestURL == "" {
+		missing = append(missing, "BASE_REQUEST_URL")
+	}
+	if len(config.MonitoredStreets) == 0 || config.MonitoredStreets[0] == "" {
+		missing = append(missing, "MONITORED_STREETS")
+	}
+	if config.TelegramBotToken == "" {
+		missing = append(missing, "TELEGRAM_BOT_TOKEN")
+	}
+	if config.TelegramChatID == "" {
+		missing = append(missing, "TELEGRAM_CHAT_ID")
+	}
+	if len(missing) > 0 {
+		return Config{}, fmt.Errorf("missing required environment variables: %s", strings.Join(missing, ", "))
 	}
 
 	return config, nil
