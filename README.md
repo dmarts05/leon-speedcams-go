@@ -1,6 +1,6 @@
 # León Speedcams
 ![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen.svg)
-![Go](https://img.shields.io/badge/Go-1.22-brightgreen.svg)
+![Go](https://img.shields.io/badge/Go-1.24-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 León Speedcams is a Go service that checks for new speed camera reports from [ahoraleon.com](https://www.ahoraleon.com) and sends alerts via Telegram for specified streets. The service is designed to run on a schedule using Docker Compose or other schedulers.
