@@ -16,10 +16,10 @@ COPY . .
 # Build binary with flags to reduce size
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o leon-speedcams-go ./cmd
 
-# Final stage - minimal image
+# Final stage
 FROM gcr.io/distroless/static:nonroot
 
-WORKDIR /
+WORKDIR /app
 
 COPY --from=builder /app/leon-speedcams-go .
 

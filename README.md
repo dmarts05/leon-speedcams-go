@@ -20,6 +20,7 @@ León Speedcams is a Go service that checks for new speed camera reports from [a
 - Sends Telegram messages when speed cameras are active on monitored streets.
 - Configurable via environment variables.
 - Lightweight Docker image suitable for scheduled runs.
+- Optional cron-based scheduling via environment variables.
 
 ## Requirements
 - Go 1.24 or later.
@@ -35,7 +36,11 @@ BASE_REQUEST_URL="https://www.ahoraleon.com"
 MONITORED_STREETS="Street1,Street2,Street3"
 TELEGRAM_BOT_TOKEN="1234567890:ABCDEF..."
 TELEGRAM_CHAT_ID="123456789"
+ENABLE_CRON="0"
+CRON="0 0 * * *"
 ```
+
+If ENABLE_CRON is set to "1", the service will run periodically based on the CRON expression. If disabled, it runs once per container.
 
 ## Development Setup
 1. Install Go 1.24 or later.
@@ -68,6 +73,7 @@ docker run --rm --env-file .env leon-speedcams-go
 ## Continuous Integration
 CI is configured with GitHub Actions:
 - Lints code with `golangci-lint`.
+- Checks formatting with `gofmt`.
 - Runs tests and builds binaries.
 - Publishes Docker image on successful main branch builds.
 
