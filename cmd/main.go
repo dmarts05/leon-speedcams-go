@@ -49,7 +49,7 @@ func runSpeedcamJob(cfg config.Config) {
 		BaseRequestURL: cfg.BaseRequestURL,
 	}
 
-	data, err := scraper.GetTodaysSpeedcamsData()
+	data, err := scraper.GetTodaySpeedcamsData()
 	if err != nil {
 		log.Error("Failed to get speedcams data: ", err)
 		return

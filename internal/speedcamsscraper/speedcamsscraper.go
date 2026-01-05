@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,35 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Filters empty strings from the given string slice
-func filterEmptyStrings(strings []string) []string {
-	var filteredStrings []string
-
-	for _, str := range strings {
-		if str != "" {
-			filteredStrings = append(filteredStrings, str)
-		}
-	}
-
-	return filteredStrings
-}
-
-// Converts a string slice to an int slice
-// Returns an error if the conversion fails
-func stringSliceToIntSlice(stringSlice []string) ([]int, error) {
-	var intSlice []int
-
-	for _, str := range stringSlice {
-		num, err := strconv.Atoi(str)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert string slice to int slice: %w", err)
-		}
-
-		intSlice = append(intSlice, num)
-	}
-
-	return intSlice, nil
-}
+// Regex to extract street name and speed limit, e.g., "Street Name (30)"
+var streetLimitRegex = regexp.MustCompile(`(.*?)\s*\((\d+)\)`)
 
 // Filters the given rows by the given day
 func filterRowsByDay(rows []SpeedcamsRow, day int) []SpeedcamsRow {
@@ -101,6 +75,34 @@ func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 	return speedcamsDataLink, nil
 }
 
+// Parses a raw text line containing streets and limits (e.g. "Street A (30), Street B (50)")
+func (ss SpeedcamsScraper) parseStreetsAndLimits(text string) ([]string, []int) {
+	var streets []string
+	var limits []int
+
+	// Clean up labels safely (ReplaceAll is safer than TrimPrefix for unstructured text)
+	text = strings.ReplaceAll(text, "Mañana:", "")
+	text = strings.ReplaceAll(text, "Tarde:", "")
+	text = strings.TrimSpace(text)
+
+	// Split by comma
+	segments := strings.Split(text, ",")
+
+	for _, segment := range segments {
+		segment = strings.TrimSpace(segment)
+		matches := streetLimitRegex.FindStringSubmatch(segment)
+		if len(matches) == 3 {
+			street := strings.TrimSpace(matches[1])
+			limit, err := strconv.Atoi(matches[2])
+			if err == nil {
+				streets = append(streets, street)
+				limits = append(limits, limit)
+			}
+		}
+	}
+	return streets, limits
+}
+
 // Gets the speedcams data rows from the given body
 // Returns an error if the rows are not found
 func (ss SpeedcamsScraper) getSpeedcamsRowsFromBody(body io.ReadCloser) ([]SpeedcamsRow, error) {
@@ -109,44 +111,76 @@ func (ss SpeedcamsScraper) getSpeedcamsRowsFromBody(body io.ReadCloser) ([]Speed
 		return nil, fmt.Errorf("failed to get speedcams rows from website body: %w", err)
 	}
 
-	// Get speedcams data table rows
-	rows := make([]SpeedcamsRow, 0, 62)
-	doc.Find("table tbody tr").Each(func(i int, s *goquery.Selection) {
-		// Skip the first row (table header)
-		if i == 0 {
+	var rows []SpeedcamsRow
+
+	// Iterate over H3 headers which contain "Día X" text
+	doc.Find(".entry-content h3").Each(func(i int, s *goquery.Selection) {
+		dayText := strings.TrimSpace(s.Text())
+		if !strings.HasPrefix(dayText, "Día") {
 			return
 		}
 
-		row := SpeedcamsRow{}
-
-		// Day
-		dayStr := strings.TrimSpace(strings.ReplaceAll(s.Find("td").Eq(0).Text(), "\\xa0", ""))
-		row.Day, err = strconv.Atoi(dayStr)
-		if err != nil && len(rows) > 0 {
-			// If the day is not found, use the previous row's day
-			// (this happens when the day is not specified in the table)
-			previousRow := rows[len(rows)-1]
-			row.Day = previousRow.Day
+		// Extract Day Number
+		dayParts := strings.Split(dayText, " ")
+		if len(dayParts) < 2 {
+			return
+		}
+		day, err := strconv.Atoi(dayParts[1])
+		if err != nil {
+			return
 		}
 
-		// Shift
-		shiftStr := strings.TrimSpace(s.Find("td").Eq(1).Text())
-		switch shiftStr {
-		case "mañana":
-			row.Shift = Morning
-		case "tarde":
-			row.Shift = Afternoon
+		// The content is in the paragraph immediately following the H3
+		contentP := s.Next()
+		if !contentP.Is("p") {
+			return
 		}
 
-		// Streets
-		streetsStr := strings.TrimSpace(s.Find("td").Eq(2).Text())
-		row.Streets = filterEmptyStrings(strings.Split(streetsStr, "\n"))
+		fullText := contentP.Text()
 
-		// Speed limits
-		speedLimitsStr := strings.TrimSpace(s.Find("td").Eq(3).Text())
-		row.SpeedLimits, _ = stringSliceToIntSlice(filterEmptyStrings(strings.Split(speedLimitsStr, "\n")))
+		// Locate the "Tarde:" marker to split Morning and Afternoon
+		// We use "Tarde:" as a separator because "Mañana:" is usually at the start.
+		tardeIndex := strings.Index(fullText, "Tarde:")
 
-		rows = append(rows, row)
+		var morningText, afternoonText string
+
+		if tardeIndex != -1 {
+			morningText = fullText[:tardeIndex]
+			afternoonText = fullText[tardeIndex:]
+		} else {
+			// Handle cases where only one shift might be present
+			if strings.Contains(fullText, "Mañana") {
+				morningText = fullText
+			} else if strings.Contains(fullText, "Tarde") {
+				afternoonText = fullText
+			}
+		}
+
+		// Parse Morning
+		if morningText != "" {
+			streets, limits := ss.parseStreetsAndLimits(morningText)
+			if len(streets) > 0 {
+				rows = append(rows, SpeedcamsRow{
+					Day:         day,
+					Shift:       Morning,
+					Streets:     streets,
+					SpeedLimits: limits,
+				})
+			}
+		}
+
+		// Parse Afternoon
+		if afternoonText != "" {
+			streets, limits := ss.parseStreetsAndLimits(afternoonText)
+			if len(streets) > 0 {
+				rows = append(rows, SpeedcamsRow{
+					Day:         day,
+					Shift:       Afternoon,
+					Streets:     streets,
+					SpeedLimits: limits,
+				})
+			}
+		}
 	})
 
 	return rows, nil
@@ -173,9 +207,9 @@ func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow
 	return rows, nil
 }
 
-// Gets today's speedcams data from the website
+// Gets today speedcams data from the website
 // Returns an error if the request fails or if the data is not found
-func (ss SpeedcamsScraper) GetTodaysSpeedcamsData() (SpeedcamsDayData, error) {
+func (ss SpeedcamsScraper) GetTodaySpeedcamsData() (SpeedcamsDayData, error) {
 	speedcamsDataLink, err := ss.getLatestSpeedcamsLink()
 	if err != nil {
 		return SpeedcamsDayData{}, fmt.Errorf("failed to get today's speedcams data: %w", err)
