@@ -175,7 +175,7 @@ func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow
 
 // Gets today's speedcams data from the website
 // Returns an error if the request fails or if the data is not found
-func (ss SpeedcamsScraper) GetTodaysSpeedcamsData() (SpeedcamsDayData, error) {
+func (ss SpeedcamsScraper) GetTodaySpeedcamsData() (SpeedcamsDayData, error) {
 	speedcamsDataLink, err := ss.getLatestSpeedcamsLink()
 	if err != nil {
 		return SpeedcamsDayData{}, fmt.Errorf("failed to get today's speedcams data: %w", err)
