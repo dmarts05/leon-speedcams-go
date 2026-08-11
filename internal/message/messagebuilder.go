@@ -21,19 +21,19 @@ func BuildSpeedcamsDayDataMessage(speedcamsDayData speedcamsscraper.SpeedcamsDay
 
 	asterisks := strings.Repeat("*", 31)
 	sb.WriteString(asterisks + "\n")
-	sb.WriteString(fmt.Sprintf("* LEÓN SPEEDCAMS (%02d/%02d/%d) *\n", day, month, year))
+	_, _ = fmt.Fprintf(&sb, "* LEÓN SPEEDCAMS (%02d/%02d/%d) *\n", day, month, year)
 	sb.WriteString(asterisks + "\n\n")
 
 	sb.WriteString("Morning:\n")
 	for _, speedcam := range speedcamsDayData.Morning {
-		sb.WriteString(fmt.Sprintf("\t- %s\n", formatSpeedcam(speedcam, monitoredStreets)))
+		_, _ = fmt.Fprintf(&sb, "\t- %s\n", formatSpeedcam(speedcam, monitoredStreets))
 	}
 
 	sb.WriteString("\n")
 
 	sb.WriteString("Afternoon:\n")
 	for _, speedcam := range speedcamsDayData.Afternoon {
-		sb.WriteString(fmt.Sprintf("\t- %s\n", formatSpeedcam(speedcam, monitoredStreets)))
+		_, _ = fmt.Fprintf(&sb, "\t- %s\n", formatSpeedcam(speedcam, monitoredStreets))
 	}
 
 	return sb.String()

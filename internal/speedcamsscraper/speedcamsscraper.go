@@ -26,6 +26,13 @@ func filterRowsByDay(rows []SpeedcamsRow, day int) []SpeedcamsRow {
 	return filteredRows
 }
 
+// Closes a response body and logs any error
+func closeResponseBody(body io.Closer) {
+	if err := body.Close(); err != nil {
+		log.Warn("Failed to close response body: ", err)
+	}
+}
+
 // Contains the client and the base request URL required to scrape speedcams data
 // from the given website
 type SpeedcamsScraper struct {
@@ -43,7 +50,7 @@ func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get latest speedcams link: %w", err)
 	}
-	defer res.Body.Close()
+	defer closeResponseBody(res.Body)
 
 	if res.StatusCode != http.StatusOK {
 		return "", errors.New("failed to get latest speedcams link: request failed with status code: " + strconv.Itoa(res.StatusCode))
@@ -85,7 +92,7 @@ func (ss SpeedcamsScraper) getSpeedcamsRowsFromLink(link string) ([]SpeedcamsRow
 	if err != nil {
 		return nil, fmt.Errorf("failed to get speedcams rows from link: %w", err)
 	}
-	defer res.Body.Close()
+	defer closeResponseBody(res.Body)
 
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get speedcams rows from link: request failed with status code: %d", res.StatusCode)
