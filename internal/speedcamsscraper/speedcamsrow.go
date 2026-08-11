@@ -8,10 +8,9 @@ const (
 	Afternoon
 )
 
-// Row of the speedcams table in the website
+// Speedcams data for one day and shift in the website.
 type SpeedcamsRow struct {
-	Day         int
-	Shift       Shift
-	Streets     []string
-	SpeedLimits []int
+	Day       int
+	Shift     Shift
+	Speedcams []Speedcam
 }

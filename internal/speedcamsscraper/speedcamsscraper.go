@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -15,36 +14,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
-
-// Filters empty strings from the given string slice
-func filterEmptyStrings(strings []string) []string {
-	var filteredStrings []string
-
-	for _, str := range strings {
-		if str != "" {
-			filteredStrings = append(filteredStrings, str)
-		}
-	}
-
-	return filteredStrings
-}
-
-// Converts a string slice to an int slice
-// Returns an error if the conversion fails
-func stringSliceToIntSlice(stringSlice []string) ([]int, error) {
-	var intSlice []int
-
-	for _, str := range stringSlice {
-		num, err := strconv.Atoi(str)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert string slice to int slice: %w", err)
-		}
-
-		intSlice = append(intSlice, num)
-	}
-
-	return intSlice, nil
-}
 
 // Filters the given rows by the given day
 func filterRowsByDay(rows []SpeedcamsRow, day int) []SpeedcamsRow {
@@ -55,14 +24,6 @@ func filterRowsByDay(rows []SpeedcamsRow, day int) []SpeedcamsRow {
 		}
 	}
 	return filteredRows
-}
-
-// Appends the given streets and speed limits to the given speedcams slice
-func appendSpeedcams(existing []Speedcam, streets []string, limits []int) []Speedcam {
-	for i, street := range streets {
-		existing = append(existing, Speedcam{Street: street, SpeedLimit: limits[i]})
-	}
-	return existing
 }
 
 // Contains the client and the base request URL required to scrape speedcams data
@@ -103,51 +64,16 @@ func (ss SpeedcamsScraper) getLatestSpeedcamsLink() (string, error) {
 
 // Gets the speedcams data rows from the given body
 // Returns an error if the rows are not found
-func (ss SpeedcamsScraper) getSpeedcamsRowsFromBody(body io.ReadCloser) ([]SpeedcamsRow, error) {
+func (ss SpeedcamsScraper) getSpeedcamsRowsFromBody(body io.Reader) ([]SpeedcamsRow, error) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get speedcams rows from website body: %w", err)
 	}
 
-	// Get speedcams data table rows
-	rows := make([]SpeedcamsRow, 0, 62)
-	doc.Find("table tbody tr").Each(func(i int, s *goquery.Selection) {
-		// Skip the first row (table header)
-		if i == 0 {
-			return
-		}
-
-		row := SpeedcamsRow{}
-
-		// Day
-		dayStr := strings.TrimSpace(strings.ReplaceAll(s.Find("td").Eq(0).Text(), "\\xa0", ""))
-		row.Day, err = strconv.Atoi(dayStr)
-		if err != nil && len(rows) > 0 {
-			// If the day is not found, use the previous row's day
-			// (this happens when the day is not specified in the table)
-			previousRow := rows[len(rows)-1]
-			row.Day = previousRow.Day
-		}
-
-		// Shift
-		shiftStr := strings.TrimSpace(s.Find("td").Eq(1).Text())
-		switch shiftStr {
-		case "mañana":
-			row.Shift = Morning
-		case "tarde":
-			row.Shift = Afternoon
-		}
-
-		// Streets
-		streetsStr := strings.TrimSpace(s.Find("td").Eq(2).Text())
-		row.Streets = filterEmptyStrings(strings.Split(streetsStr, "\n"))
-
-		// Speed limits
-		speedLimitsStr := strings.TrimSpace(s.Find("td").Eq(3).Text())
-		row.SpeedLimits, _ = stringSliceToIntSlice(filterEmptyStrings(strings.Split(speedLimitsStr, "\n")))
-
-		rows = append(rows, row)
-	})
+	rows, err := parseSpeedcamsRows(doc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get speedcams rows from website body: %w", err)
+	}
 
 	return rows, nil
 }
@@ -198,9 +124,9 @@ func (ss SpeedcamsScraper) GetTodaySpeedcamsData() (SpeedcamsDayData, error) {
 	for _, row := range todayRows {
 		switch row.Shift {
 		case Morning:
-			todaysSpeedcamsData.Morning = appendSpeedcams(todaysSpeedcamsData.Morning, row.Streets, row.SpeedLimits)
+			todaysSpeedcamsData.Morning = append(todaysSpeedcamsData.Morning, row.Speedcams...)
 		case Afternoon:
-			todaysSpeedcamsData.Afternoon = appendSpeedcams(todaysSpeedcamsData.Afternoon, row.Streets, row.SpeedLimits)
+			todaysSpeedcamsData.Afternoon = append(todaysSpeedcamsData.Afternoon, row.Speedcams...)
 		default:
 			log.Warn("Unexpected shift value: ", row.Shift)
 		}
